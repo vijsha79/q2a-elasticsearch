@@ -158,7 +158,8 @@ class qa_elasticsearch {
 		$params['index'] = $this->es_index_name;
 		$params['type']  = 'post';
 		$params['body']['query']['multi_match'] = array ( 'query' => $query , 'fields' => array('title','content','text'));
-
+        $params['from'] = $start;
+        $params['size'] = $count;
 		$es_results = $this->es_client->search($params);
 
 		$total_found = $es_results['hits']['total'];
