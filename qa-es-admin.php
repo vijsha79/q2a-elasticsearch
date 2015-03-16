@@ -9,20 +9,24 @@ class qa_elasticsearch {
 	private $es_index_name;
 	private $es_enabled;
 
-	public function load_module($directory, $urltoroot, $type, $name ) {
+	function create_es_client_if_needed() {
 		$this->es_enabled = qa_opt('elasticsearch_enabled');
-		if ( $this->es_enabled) {
+		if ( $this->es_enabled && !$this->es_client) {
 			$this->es_hostname = qa_opt('elasticsearch_hostname');
 			$this->es_port = qa_opt('elasticsearch_port');
 			$this->es_index_name = qa_opt('elasticsearch_index_name');
 			$this->es_client = create_es_client($this->es_hostname, $this->es_port);
-		}				
+			$params = array( 'index' => $this->es_index_name);
+			if ( !$this->es_client->indices()->exists($params))
+				$this->es_client->indices()->create($params);
+		}
 	}
-
+	
 	function allow_template($template)
 	{
 		return ($template!='admin');
 	}
+	
 	function option_default($option) {
 		switch($option) {
 			case 'elasticsearch_hostname':
@@ -109,7 +113,7 @@ class qa_elasticsearch {
 	}
 
 	public function index_post($postid, $type, $questionid, $parentid, $title, $content, $format, $text, $tagstring, $categoryid) {
-		echo "Index Post Called"; 
+		$this->create_es_client_if_needed();
 		$params = array();
 		$params['body']  = array(
 		     'questionid' => $questionid,
@@ -133,6 +137,7 @@ class qa_elasticsearch {
 	}
 
 	public function unindex_post($postid) {
+		$this->create_es_client_if_needed();
 		$deleteParams = array();
 		$deleteParams['index'] = $this->es_index_name;
 		$deleteParams['type'] = 'post';
@@ -142,6 +147,7 @@ class qa_elasticsearch {
 	}
 
 	public function move_post($postid, $categoryid) {
+		$this->create_es_client_if_needed();
 		$params = array();
 		$params['index'] = $this->es_index_name;
                 $params['type']  = 'post';
@@ -154,6 +160,7 @@ class qa_elasticsearch {
 	}
 
 	public function process_search($query, $start, $count, $userid, $absoluteurls, $fullcontent) {
+		$this->create_es_client_if_needed();
 		$results = array();
 		$params['index'] = $this->es_index_name;
 		$params['type']  = 'post';
@@ -175,5 +182,5 @@ class qa_elasticsearch {
 		}
 		return $results;
 	}
-
+	
 }
